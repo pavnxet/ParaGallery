@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react'
 import { uploadImage } from '../lib/imgbb'
-import { insertPhoto } from '../lib/db'
+import { insertPhoto, fetchAlbums, createAlbum } from '../lib/db'
 import { useAuth } from '../contexts/AuthContext'
-import { X, UploadCloud, Check, Loader2, AlertCircle, Trash2 } from 'lucide-react'
+import { X, UploadCloud, Check, Loader2, AlertCircle, Trash2, Folder, FolderPlus } from 'lucide-react'
 
 const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDroppedFiles }) => {
   const [files, setFiles] = useState([])
   const [isUploading, setIsUploading] = useState(false)
+  const [albums, setAlbums] = useState([])
+  const [selectedAlbumId, setSelectedAlbumId] = useState('')
+  const [isCreatingAlbum, setIsCreatingAlbum] = useState(false)
+  const [newAlbumName, setNewAlbumName] = useState('')
   const { user } = useAuth()
 
   // Handle dropped files
@@ -20,7 +24,6 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
         preview: URL.createObjectURL(file)
       }))
 
-      // Use setTimeout to avoid synchronous state update warning
       setTimeout(() => {
         setFiles(prev => [...prev, ...newFiles])
         if (onClearDroppedFiles) onClearDroppedFiles()
@@ -28,7 +31,7 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
     }
   }, [droppedFiles, onClearDroppedFiles])
 
-  // Cleanup object URLs on unmount
+  // Cleanup object URLs
   useEffect(() => {
     return () => {
       files.forEach(f => {
@@ -37,21 +40,20 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
     }
   }, [files])
 
-  // Reset state when modal is fully closed?
-  // We'll keep the state so users can see previous uploads if they open/close rapidly,
-  // but usually we want to clear on open if it was closed.
-  // Let's rely on user manually clearing or successful upload clearing.
-  // Actually, if I close and reopen, I might expect a clean slate.
-  // Let's clear if the modal is closed and we are done.
+  // Fetch albums when modal opens
   useEffect(() => {
-      if (!isOpen) {
-          // If we want to reset when closed
-          // setFiles([])
-      }
-  }, [isOpen])
-
+    if (isOpen && user) {
+        fetchAlbums(user.id).then(setAlbums).catch(console.error)
+    }
+  }, [isOpen, user])
 
   if (!isOpen) return null
+
+  const handleClose = () => {
+    setIsCreatingAlbum(false)
+    setNewAlbumName('')
+    onClose()
+  }
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -77,10 +79,26 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
     })
   }
 
+  const handleCreateAlbum = async () => {
+      if (!newAlbumName.trim()) return
+      try {
+          const album = await createAlbum({
+              user_id: user.id,
+              name: newAlbumName
+          })
+          setAlbums(prev => [album, ...prev])
+          setSelectedAlbumId(album.id)
+          setIsCreatingAlbum(false)
+          setNewAlbumName('')
+      } catch (error) {
+          console.error("Failed to create album", error)
+          alert("Failed to create album")
+      }
+  }
+
   const handleUpload = async () => {
     const pendingFiles = files.filter(f => f.status === 'pending' || f.status === 'error')
     if (pendingFiles.length === 0) {
-        // If all are success, maybe close?
         if (files.every(f => f.status === 'success')) {
             onClose()
             setFiles([])
@@ -90,7 +108,6 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
 
     setIsUploading(true)
 
-    // Parallel upload
     const uploadPromises = pendingFiles.map(async (fileObj) => {
       setFiles(prev => prev.map(f => f.id === fileObj.id ? { ...f, status: 'uploading', error: null } : f))
 
@@ -102,6 +119,8 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
           url: imgData.url,
           thumb_url: imgData.thumb?.url || imgData.url,
           delete_url: imgData.delete_url,
+          name: fileObj.file.name,
+          album_id: selectedAlbumId || null
         }
 
         await insertPhoto(photoData)
@@ -116,10 +135,7 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
     await Promise.all(uploadPromises)
     setIsUploading(false)
 
-    // Refresh gallery
     if (onUploadSuccess) onUploadSuccess()
-
-    // Note: We don't auto-close here to let user see results (success/failure)
   }
 
   const pendingCount = files.filter(f => f.status === 'pending' || f.status === 'error').length
@@ -130,15 +146,73 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl p-6 relative max-h-[90vh] flex flex-col">
         <button
-            onClick={onClose}
+            onClick={handleClose}
             className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
         >
             <X className="w-5 h-5" />
         </button>
         <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Upload Photos</h2>
 
+        {/* Album Selection */}
+        <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Album (Optional)</label>
+            {!isCreatingAlbum ? (
+                <div className="flex gap-2">
+                    <div className="relative flex-1">
+                        <select
+                            value={selectedAlbumId}
+                            onChange={(e) => setSelectedAlbumId(e.target.value)}
+                            className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 pr-8"
+                        >
+                            <option value="">No Album</option>
+                            {albums.map(album => (
+                                <option key={album.id} value={album.id}>{album.name}</option>
+                            ))}
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                            <Folder className="h-4 w-4 text-gray-400" />
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setIsCreatingAlbum(true)}
+                        className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                        title="Create New Album"
+                    >
+                        <FolderPlus className="w-5 h-5" />
+                    </button>
+                </div>
+            ) : (
+                <div className="flex gap-2">
+                    <input
+                        type="text"
+                        value={newAlbumName}
+                        onChange={(e) => setNewAlbumName(e.target.value)}
+                        placeholder="New Album Name"
+                        className="flex-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2"
+                        autoFocus
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleCreateAlbum()
+                            if (e.key === 'Escape') setIsCreatingAlbum(false)
+                        }}
+                    />
+                    <button
+                        onClick={handleCreateAlbum}
+                        disabled={!newAlbumName.trim()}
+                        className="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Create
+                    </button>
+                    <button
+                        onClick={() => setIsCreatingAlbum(false)}
+                        className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            )}
+        </div>
+
         <div className="flex-1 overflow-y-auto mb-4 pr-2 custom-scrollbar">
-            {/* Drop zone / Add button */}
             <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 flex flex-col items-center justify-center mb-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors relative">
                 <input
                     type="file"
@@ -154,7 +228,6 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
                 </span>
             </div>
 
-            {/* File List */}
             {hasFiles && (
                 <div className="space-y-3">
                     {files.map(fileObj => (
@@ -196,7 +269,7 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
 
         <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 mr-3"
             >
                 {successCount > 0 && pendingCount === 0 ? 'Close' : 'Cancel'}
