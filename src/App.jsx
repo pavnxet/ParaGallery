@@ -17,6 +17,8 @@ function AppContent() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [droppedFiles, setDroppedFiles] = useState(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [activeView, setActiveView] = useState('all') // 'all', 'albums', 'favorites'
   const { user, loading } = useAuth()
 
   const handleDrop = useCallback((files) => {
@@ -41,7 +43,13 @@ function AppContent() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
       {user && <DragOverlay isDragging={isDragging} />}
 
-      <Navbar onUploadClick={() => setIsUploadModalOpen(true)} />
+      <Navbar
+        onUploadClick={() => setIsUploadModalOpen(true)}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        activeView={activeView}
+        onViewChange={setActiveView}
+      />
 
       <Routes>
         <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
@@ -51,7 +59,12 @@ function AppContent() {
           path="/"
           element={
             <ProtectedRoute>
-              <Gallery refreshTrigger={refreshTrigger} />
+              <Gallery
+                refreshTrigger={refreshTrigger}
+                searchTerm={searchTerm}
+                activeView={activeView}
+                onViewChange={setActiveView}
+              />
             </ProtectedRoute>
           }
         />
