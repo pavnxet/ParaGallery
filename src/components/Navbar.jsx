@@ -1,10 +1,35 @@
 import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { LogOut, Upload, User } from 'lucide-react'
+import { LogOut, Upload, User, LayoutDashboard, Sun, Moon } from 'lucide-react'
 
 const Navbar = ({ onUploadClick }) => {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
+
+  // Initialize theme from localStorage or system preference
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+        const stored = localStorage.getItem('theme')
+        if (stored) return stored
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    }
+    return 'light'
+  })
+
+  useEffect(() => {
+    const root = window.document.documentElement
+    if (theme === 'dark') {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
+    localStorage.setItem('theme', theme)
+  }, [theme])
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light')
+  }
 
   const handleSignOut = async () => {
     await signOut()
@@ -12,7 +37,7 @@ const Navbar = ({ onUploadClick }) => {
   }
 
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-50">
+    <nav className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-50 transition-colors duration-300">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 justify-between items-center">
           <div className="flex items-center">
@@ -21,6 +46,15 @@ const Navbar = ({ onUploadClick }) => {
             </Link>
           </div>
           <div className="flex items-center gap-4">
+            {/* Theme Toggle Button - Available for both logged in and logged out users */}
+            <button
+                onClick={toggleTheme}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+                {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
+
             {user ? (
               <>
                 <button
@@ -30,12 +64,13 @@ const Navbar = ({ onUploadClick }) => {
                   <Upload className="h-4 w-4" />
                   <span className="hidden sm:inline">Upload</span>
                 </button>
-                <div className="relative group">
-                    <button className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white">
-                        <User className="h-5 w-5" />
-                    </button>
-                    {/* Dropdown or just Logout directly */}
-                </div>
+                <Link
+                  to="/dashboard"
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2"
+                  title="Dashboard"
+                >
+                    <LayoutDashboard className="h-5 w-5" />
+                </Link>
                 <button
                   onClick={handleSignOut}
                   className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"

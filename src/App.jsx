@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Navbar from './components/Navbar'
 import UploadModal from './components/UploadModal'
 import Gallery from './pages/Gallery'
+import Dashboard from './pages/Dashboard'
+import SharedGallery from './pages/SharedGallery'
 import Login from './pages/Login'
 import SignUp from './pages/SignUp'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -44,11 +46,20 @@ function AppContent() {
       <Routes>
         <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
         <Route path="/signup" element={!user ? <SignUp /> : <Navigate to="/" replace />} />
+        <Route path="/shared/:shareId" element={<SharedGallery />} />
         <Route
           path="/"
           element={
             <ProtectedRoute>
               <Gallery refreshTrigger={refreshTrigger} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
             </ProtectedRoute>
           }
         />
