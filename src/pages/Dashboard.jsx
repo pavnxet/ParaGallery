@@ -18,10 +18,7 @@ const Dashboard = () => {
       try {
         const photos = await fetchUserPhotos(user.id)
         const totalPhotos = photos.length
-        // Assuming size is not currently stored, but if it were:
-        // const totalSize = photos.reduce((acc, photo) => acc + (photo.size || 0), 0)
-        // Since we don't track size yet, we'll keep it as 0 or unknown.
-        const totalSize = 0
+        const totalSize = photos.reduce((acc, photo) => acc + (photo.size || 0), 0)
 
         setStats({
           totalPhotos,
@@ -77,20 +74,20 @@ const Dashboard = () => {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Estimated Storage</dt>
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Storage Used</dt>
                     <dd className="text-3xl font-semibold text-gray-900 dark:text-white">
-                      {stats.totalSize > 0 ? `${(stats.totalSize / 1024 / 1024).toFixed(2)} MB` : 'Unknown'}
+                      {(stats.totalSize / 1024 / 1024).toFixed(2)} MB
                     </dd>
-                    <dd className="text-xs text-gray-500 dark:text-gray-500 mt-1">Storage tracking not enabled</dd>
+                    <dd className="text-xs text-gray-500 dark:text-gray-500 mt-1">out of Unlimited</dd>
                   </dl>
                 </div>
               </div>
               <div className="bg-gray-50 dark:bg-gray-700 px-5 py-3">
                 <div className="text-sm">
                    <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2.5">
-                      <div className="bg-indigo-600 h-2.5 rounded-full" style={{ width: '0%' }}></div>
+                      <div className="bg-indigo-600 h-2.5 rounded-full" style={{ width: '1%' }}></div>
                    </div>
-                   <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-right">0% used of 1GB (Mock Limit)</p>
+                   <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-right">Unlimited Storage</p>
                 </div>
               </div>
             </div>
