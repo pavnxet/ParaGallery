@@ -120,7 +120,8 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
           thumb_url: imgData.thumb?.url || imgData.url,
           delete_url: imgData.delete_url,
           name: fileObj.file.name,
-          album_id: selectedAlbumId || null
+          album_id: selectedAlbumId || null,
+          size: fileObj.file.size || 0
         }
 
         await insertPhoto(photoData)

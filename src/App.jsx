@@ -6,6 +6,7 @@ import UploadModal from './components/UploadModal'
 import Gallery from './pages/Gallery'
 import Login from './pages/Login'
 import SignUp from './pages/SignUp'
+import Dashboard from './pages/Dashboard'
 import ProtectedRoute from './components/ProtectedRoute'
 import { useGlobalDragDrop } from './hooks/useGlobalDragDrop'
 import DragOverlay from './components/DragOverlay'
@@ -62,6 +63,14 @@ function AppContent() {
                 activeView={activeView}
                 onViewChange={setActiveView}
               />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
             </ProtectedRoute>
           }
         />
