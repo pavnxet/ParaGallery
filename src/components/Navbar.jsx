@@ -1,9 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { LogOut, Upload, Search, Grid, Album, Heart } from 'lucide-react'
+import { LogOut, Upload, Search, Grid, Album, Heart, Sun, Moon, LayoutDashboard } from 'lucide-react'
+import { useTheme } from '../hooks/useTheme'
 
 const Navbar = ({ onUploadClick, searchTerm, onSearchChange, activeView, onViewChange }) => {
   const { user, signOut } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
 
   const handleSignOut = async () => {
@@ -65,6 +67,22 @@ const Navbar = ({ onUploadClick, searchTerm, onSearchChange, activeView, onViewC
                     </button>
                 </div>
 
+                <Link
+                  to="/dashboard"
+                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  title="Dashboard"
+                >
+                   <LayoutDashboard className="h-5 w-5" />
+                </Link>
+
+                <button
+                  onClick={toggleTheme}
+                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                >
+                  {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                </button>
+
                 <button
                   onClick={onUploadClick}
                   className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
@@ -82,7 +100,14 @@ const Navbar = ({ onUploadClick, searchTerm, onSearchChange, activeView, onViewC
                 </button>
               </>
             ) : (
-              <div className="flex gap-4">
+              <div className="flex gap-4 items-center">
+                <button
+                  onClick={toggleTheme}
+                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                >
+                  {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                </button>
                 <Link to="/login" className="text-sm font-semibold leading-6 text-gray-900 dark:text-gray-200">
                   Log in
                 </Link>
