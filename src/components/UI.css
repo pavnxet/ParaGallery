@@ -292,11 +292,11 @@
 
 /* Upload Button */
 .ui-btn-upload {
-  width: 10em;
-  height: 3em;
+  width: 8em;
+  height: 2.5em;
   border-radius: 8px;
-  border: 0.15em solid rgb(162, 63, 255);
-  color: rgb(162, 63, 255);
+  border: 0.15em solid rgb(255, 63, 63); /* Red */
+  color: rgb(255, 63, 63); /* Red */
   background-color: #00000000;
   transition: all 0.5s ease;
   display: flex;
@@ -319,7 +319,7 @@
 }
 
 .ui-btn-upload:hover {
-  background-color: rgb(162, 63, 255);
+  background-color: rgb(255, 63, 63); /* Red */
   color: #fff
 }
 
