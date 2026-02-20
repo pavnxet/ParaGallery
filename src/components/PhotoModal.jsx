@@ -3,6 +3,11 @@ import { X, Download, Link as LinkIcon, Check, ChevronLeft, ChevronRight } from 
 
 const PhotoModal = ({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) => {
   const [copied, setCopied] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    setIsLoading(true)
+  }, [photo.id])
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -82,10 +87,21 @@ const PhotoModal = ({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) => {
           </button>
         )}
 
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center z-10">
+            <div className="loader">
+              <span className="bar"></span>
+              <span className="bar"></span>
+              <span className="bar"></span>
+            </div>
+          </div>
+        )}
+
         <img
           src={photo.url}
           alt="Full size"
-          className="max-w-full max-h-[90vh] rounded-lg object-contain shadow-2xl z-0"
+          className={`max-w-full max-h-[90vh] rounded-lg object-contain shadow-2xl z-0 transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+          onLoad={() => setIsLoading(false)}
         />
 
         {hasNext && (
