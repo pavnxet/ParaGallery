@@ -4,7 +4,12 @@ export const useGlobalDragDrop = (onDrop) => {
   const [isDragging, setIsDragging] = useState(false)
   const dragCounter = useRef(0)
 
+  // Check for touch capability
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+
   const handleDragEnter = useCallback((e) => {
+    if (isTouchDevice) return
+
     e.preventDefault()
     e.stopPropagation()
 
@@ -57,6 +62,8 @@ export const useGlobalDragDrop = (onDrop) => {
   }, [onDrop])
 
   useEffect(() => {
+    if (isTouchDevice) return
+
     window.addEventListener('dragenter', handleDragEnter)
     window.addEventListener('dragleave', handleDragLeave)
     window.addEventListener('dragover', handleDragOver)
@@ -68,7 +75,7 @@ export const useGlobalDragDrop = (onDrop) => {
       window.removeEventListener('dragover', handleDragOver)
       window.removeEventListener('drop', handleDrop)
     }
-  }, [handleDragEnter, handleDragLeave, handleDragOver, handleDrop])
+  }, [handleDragEnter, handleDragLeave, handleDragOver, handleDrop, isTouchDevice])
 
   return { isDragging }
 }

@@ -1,8 +1,23 @@
-import { useState } from 'react'
-import { X, Download, Link as LinkIcon, Check } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { X, Download, Link as LinkIcon, Check, ChevronLeft, ChevronRight } from 'lucide-react'
 
-const PhotoModal = ({ photo, onClose }) => {
+const PhotoModal = ({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) => {
   const [copied, setCopied] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    setIsLoading(true)
+  }, [photo.id])
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'ArrowLeft' && hasPrev) onPrev()
+      if (e.key === 'ArrowRight' && hasNext) onNext()
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [hasNext, hasPrev, onNext, onPrev, onClose])
 
   if (!photo) return null
 
@@ -60,11 +75,46 @@ const PhotoModal = ({ photo, onClose }) => {
             <X className="w-8 h-8" />
           </button>
         </div>
+        {hasPrev && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onPrev()
+            }}
+            className="absolute left-4 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors z-20 focus:outline-none"
+          >
+            <ChevronLeft className="w-8 h-8" />
+          </button>
+        )}
+
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center z-10">
+            <div className="loader">
+              <span className="bar"></span>
+              <span className="bar"></span>
+              <span className="bar"></span>
+            </div>
+          </div>
+        )}
+
         <img
           src={photo.url}
           alt="Full size"
-          className="max-w-full max-h-[90vh] rounded-lg object-contain shadow-2xl"
+          className={`max-w-full max-h-[90vh] rounded-lg object-contain shadow-2xl z-0 transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+          onLoad={() => setIsLoading(false)}
         />
+
+        {hasNext && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onNext()
+            }}
+            className="absolute right-4 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors z-20 focus:outline-none"
+          >
+            <ChevronRight className="w-8 h-8" />
+          </button>
+        )}
       </div>
     </div>
   )
