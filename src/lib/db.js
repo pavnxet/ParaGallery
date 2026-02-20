@@ -46,6 +46,24 @@ export const deletePhoto = async (photoId) => {
   if (error) throw error
 }
 
+export const deleteAlbum = async (albumId) => {
+  // First, orphan the photos
+  const { error: orphanError } = await supabase
+    .from('photos')
+    .update({ album_id: null })
+    .eq('album_id', albumId)
+
+  if (orphanError) throw orphanError
+
+  // Then delete the album
+  const { error: deleteError } = await supabase
+    .from('albums')
+    .delete()
+    .eq('id', albumId)
+
+  if (deleteError) throw deleteError
+}
+
 export const deleteMultiplePhotos = async (photoIds) => {
   const { error } = await supabase
     .from('photos')

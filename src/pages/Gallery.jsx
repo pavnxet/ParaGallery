@@ -116,6 +116,11 @@ const Gallery = ({ refreshTrigger, searchTerm, activeView }) => {
 
   const groupedPhotos = useMemo(() => groupPhotosByDate(photos), [photos])
 
+  const selectedPhotoIndex = useMemo(() => {
+    if (!selectedPhoto || photos.length === 0) return -1
+    return photos.findIndex(p => p.id === selectedPhoto.id)
+  }, [selectedPhoto, photos])
+
   if (activeView === 'albums' && !selectedAlbum) {
       return (
           <div className="container mx-auto px-4 py-8">
@@ -211,6 +216,10 @@ const Gallery = ({ refreshTrigger, searchTerm, activeView }) => {
         <PhotoModal
           photo={selectedPhoto}
           onClose={() => setSelectedPhoto(null)}
+          onNext={() => setSelectedPhoto(photos[selectedPhotoIndex + 1])}
+          onPrev={() => setSelectedPhoto(photos[selectedPhotoIndex - 1])}
+          hasNext={selectedPhotoIndex < photos.length - 1}
+          hasPrev={selectedPhotoIndex > 0}
         />
       )}
 

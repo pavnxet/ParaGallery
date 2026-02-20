@@ -1,23 +1,41 @@
 export const groupPhotosByDate = (photos) => {
   if (!photos || photos.length === 0) return []
 
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+
   const groupedMap = photos.reduce((acc, photo) => {
     const date = new Date(photo.created_at)
-    const key = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
-    // We also need a sort key, e.g., YYYY-MM
-    const sortKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    // Normalize to midnight for comparison
+    const photoDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    const time = photoDate.getTime()
 
-    if (!acc[key]) {
-      acc[key] = {
-        title: key,
-        sortKey: sortKey,
+    let title
+    if (time === today.getTime()) {
+      title = 'Today'
+    } else if (time === yesterday.getTime()) {
+      title = 'Yesterday'
+    } else {
+      const options = { weekday: 'long', month: 'long', day: 'numeric' }
+      if (date.getFullYear() !== now.getFullYear()) {
+        options.year = 'numeric'
+      }
+      title = date.toLocaleDateString('en-US', options)
+    }
+
+    if (!acc[title]) {
+      acc[title] = {
+        title: title,
+        sortKey: time,
         photos: []
       }
     }
-    acc[key].photos.push(photo)
+    acc[title].photos.push(photo)
     return acc
   }, {})
 
   // Sort groups by date descending
-  return Object.values(groupedMap).sort((a, b) => b.sortKey.localeCompare(a.sortKey))
+  return Object.values(groupedMap).sort((a, b) => b.sortKey - a.sortKey)
 }
