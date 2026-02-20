@@ -1,0 +1,477 @@
+/* Favorite / Like Button */
+.ui-heart-container {
+  --heart-color: rgb(255, 91, 137);
+  position: relative;
+  width: 50px;
+  height: 50px;
+  transition: .3s;
+}
+
+.ui-heart-container .checkbox {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  z-index: 20;
+  cursor: pointer;
+}
+
+.ui-heart-container .svg-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ui-heart-container .svg-outline,
+.ui-heart-container .svg-filled {
+  fill: var(--heart-color);
+  position: absolute;
+}
+
+.ui-heart-container .svg-filled {
+  animation: keyframes-svg-filled 1s;
+  display: none;
+}
+
+.ui-heart-container .svg-celebrate {
+  position: absolute;
+  animation: keyframes-svg-celebrate .5s;
+  animation-fill-mode: forwards;
+  display: none;
+  stroke: var(--heart-color);
+  fill: var(--heart-color);
+  stroke-width: 2px;
+}
+
+.ui-heart-container .checkbox:checked~.svg-container .svg-filled {
+  display: block
+}
+
+.ui-heart-container .checkbox:checked~.svg-container .svg-celebrate {
+  display: block
+}
+
+@keyframes keyframes-svg-filled {
+  0% {
+    transform: scale(0);
+  }
+
+  25% {
+    transform: scale(1.2);
+  }
+
+  50% {
+    transform: scale(1);
+    filter: brightness(1.5);
+  }
+}
+
+@keyframes keyframes-svg-celebrate {
+  0% {
+    transform: scale(0);
+  }
+
+  50% {
+    opacity: 1;
+    filter: brightness(1.5);
+  }
+
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+    display: none;
+  }
+}
+
+
+/* Share / Close / Download Button */
+.ui-btn-action {
+  position: relative;
+  width: 4em;
+  height: 4em;
+  border: none;
+  background: rgba(180, 83, 107, 0.11);
+  border-radius: 5px;
+  transition: background 0.5s;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ui-btn-action .X {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2em;
+  height: 1.5px;
+  background-color: rgb(255, 255, 255);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.ui-btn-action .Y {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2em;
+  height: 1.5px;
+  background-color: #fff;
+  transform: translateX(-50%) rotate(-45deg);
+}
+
+.ui-btn-action .close {
+  position: absolute;
+  display: flex;
+  padding: 0.8rem 1.5rem;
+  align-items: center;
+  justify-content: center;
+  transform: translateX(-50%);
+  top: -70%;
+  left: 50%;
+  width: max-content;
+  height: 1.7em;
+  font-size: 12px;
+  background-color: rgb(19, 22, 24);
+  color: rgb(187, 229, 236);
+  border: none;
+  border-radius: 3px;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 100;
+}
+
+.ui-btn-action:hover {
+  background-color: rgb(211, 21, 21);
+}
+
+.ui-btn-action:active {
+  background-color: rgb(130, 0, 0);
+}
+
+.ui-btn-action:hover > .close {
+  animation: close 0.2s forwards 0.25s;
+}
+
+@keyframes close {
+  100% {
+    opacity: 1;
+  }
+}
+
+
+/* Delete Button */
+.ui-btn-delete {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: rgb(20, 20, 20);
+  border: none;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.164);
+  cursor: pointer;
+  transition-duration: .3s;
+  overflow: hidden;
+  position: relative;
+}
+
+.ui-btn-delete .svgIcon {
+  width: 12px;
+  transition-duration: .3s;
+}
+
+.ui-btn-delete .svgIcon path {
+  fill: white;
+}
+
+.ui-btn-delete:hover {
+  width: 140px;
+  border-radius: 50px;
+  transition-duration: .3s;
+  background-color: rgb(255, 69, 69);
+  align-items: center;
+}
+
+.ui-btn-delete:hover .svgIcon {
+  width: 50px;
+  transition-duration: .3s;
+  transform: translateY(60%);
+}
+
+.ui-btn-delete::before {
+  position: absolute;
+  top: -20px;
+  content: "Delete";
+  color: white;
+  transition-duration: .3s;
+  font-size: 2px;
+}
+
+.ui-btn-delete:hover::before {
+  font-size: 13px;
+  opacity: 1;
+  transform: translateY(30px);
+  transition-duration: .3s;
+}
+
+
+/* Logout Button */
+.ui-btn-logout {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 45px;
+  height: 45px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition-duration: .3s;
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.199);
+  background-color: rgb(255, 65, 65);
+}
+
+/* plus sign */
+.ui-btn-logout .sign {
+  width: 100%;
+  transition-duration: .3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ui-btn-logout .sign svg {
+  width: 17px;
+}
+
+.ui-btn-logout .sign svg path {
+  fill: white;
+}
+/* text */
+.ui-btn-logout .text {
+  position: absolute;
+  right: 0%;
+  width: 0%;
+  opacity: 0;
+  color: white;
+  font-size: 1.2em;
+  font-weight: 600;
+  transition-duration: .3s;
+}
+/* hover effect on button width */
+.ui-btn-logout:hover {
+  width: 125px;
+  border-radius: 40px;
+  transition-duration: .3s;
+}
+
+.ui-btn-logout:hover .sign {
+  width: 30%;
+  transition-duration: .3s;
+  padding-left: 20px;
+}
+/* hover effect button's text */
+.ui-btn-logout:hover .text {
+  opacity: 1;
+  width: 70%;
+  transition-duration: .3s;
+  padding-right: 10px;
+}
+/* button click effect*/
+.ui-btn-logout:active {
+  transform: translate(2px ,2px);
+}
+
+
+/* Upload Button */
+.ui-btn-upload {
+  width: 10em;
+  height: 3em;
+  border-radius: 8px;
+  border: 0.15em solid rgb(162, 63, 255);
+  color: rgb(162, 63, 255);
+  background-color: #00000000;
+  transition: all 0.5s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+}
+
+.ui-btn-upload .text {
+  display: none
+}
+
+.ui-btn-upload:hover>.text {
+  display: block;
+}
+
+.ui-btn-upload:hover>svg {
+  display: none;
+}
+
+.ui-btn-upload:hover {
+  background-color: rgb(162, 63, 255);
+  color: #fff
+}
+
+.ui-btn-upload svg {
+  width: 1.5em;
+  margin-top: 3px;
+}
+
+
+/* Login / Signup Form */
+.ui-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-left: 2em;
+  padding-right: 2em;
+  padding-bottom: 0.4em;
+  background-color: #171717;
+  border-radius: 25px;
+  transition: .4s ease-in-out;
+  width: 100%;
+  max-width: 400px; /* Added max-width for responsiveness */
+  margin: 0 auto;
+}
+
+.ui-form:hover {
+  transform: scale(1.05);
+  border: 1px solid black;
+}
+
+.ui-form #heading {
+  text-align: center;
+  margin: 2em;
+  color: rgb(255, 255, 255);
+  font-size: 1.2em;
+}
+
+.ui-form .field {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  border-radius: 25px;
+  padding: 0.6em;
+  border: none;
+  outline: none;
+  color: white;
+  background-color: #171717;
+  box-shadow: inset 2px 5px 10px rgb(5, 5, 5);
+}
+
+.ui-form .input-icon {
+  height: 1.3em;
+  width: 1.3em;
+  fill: white;
+}
+
+.ui-form .input-field {
+  background: none;
+  border: none;
+  outline: none;
+  width: 100%;
+  color: #d3d3d3;
+}
+
+.ui-form .btn {
+  display: flex;
+  justify-content: center;
+  flex-direction: row;
+  margin-top: 2.5em;
+}
+
+.ui-form .button1 {
+  padding: 0.5em;
+  padding-left: 1.1em;
+  padding-right: 1.1em;
+  border-radius: 5px;
+  margin-right: 0.5em;
+  border: none;
+  outline: none;
+  transition: .4s ease-in-out;
+  background-color: #252525;
+  color: white;
+  cursor: pointer;
+}
+
+.ui-form .button1:hover {
+  background-color: black;
+  color: white;
+}
+
+.ui-form .button2 {
+  padding: 0.5em;
+  padding-left: 2.3em;
+  padding-right: 2.3em;
+  border-radius: 5px;
+  border: none;
+  outline: none;
+  transition: .4s ease-in-out;
+  background-color: #252525;
+  color: white;
+  cursor: pointer;
+}
+
+.ui-form .button2:hover {
+  background-color: black;
+  color: white;
+}
+
+.ui-form .button3 {
+  margin-bottom: 3em;
+  padding: 0.5em;
+  border-radius: 5px;
+  border: none;
+  outline: none;
+  transition: .4s ease-in-out;
+  background-color: #252525;
+  color: white;
+  cursor: pointer;
+  width: 100%;
+}
+
+.ui-form .button3:hover {
+  background-color: red;
+  color: white;
+}
+
+/* Color Modifiers for Action Buttons */
+.ui-btn-action.share {
+  background: rgba(99, 102, 241, 0.15); /* Indigo */
+}
+.ui-btn-action.share:hover {
+  background-color: rgb(79, 70, 229);
+}
+.ui-btn-action.share:active {
+  background-color: rgb(49, 46, 129);
+}
+.ui-btn-action.share .close {
+  background-color: rgb(30, 27, 75);
+  color: rgb(224, 231, 255);
+}
+
+.ui-btn-action.download {
+  background: rgba(16, 185, 129, 0.15); /* Emerald */
+}
+.ui-btn-action.download:hover {
+  background-color: rgb(5, 150, 105);
+}
+.ui-btn-action.download:active {
+  background-color: rgb(6, 78, 59);
+}
+.ui-btn-action.download .close {
+  background-color: rgb(6, 78, 59);
+  color: rgb(209, 250, 229);
+}

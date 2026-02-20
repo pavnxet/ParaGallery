@@ -214,12 +214,15 @@ const Gallery = ({ refreshTrigger, searchTerm, activeView }) => {
 
       {selectedPhoto && (
         <PhotoModal
+          key={selectedPhoto.id}
           photo={selectedPhoto}
           onClose={() => setSelectedPhoto(null)}
           onNext={() => setSelectedPhoto(photos[selectedPhotoIndex + 1])}
           onPrev={() => setSelectedPhoto(photos[selectedPhotoIndex - 1])}
           hasNext={selectedPhotoIndex < photos.length - 1}
           hasPrev={selectedPhotoIndex > 0}
+          onDelete={handleDelete}
+          onToggleFavorite={handleToggleFavorite}
         />
       )}
 
