@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { Check, X } from 'lucide-react'
 
 const SignUp = () => {
   const [email, setEmail] = useState('')
@@ -11,11 +12,38 @@ const SignUp = () => {
   const { signUp } = useAuth()
   const navigate = useNavigate()
 
+  // Password requirements validation
+  const validatePassword = (pwd) => {
+    const requirements = {
+      minLength: pwd.length >= 8,
+      hasUppercase: /[A-Z]/.test(pwd),
+      hasLowercase: /[a-z]/.test(pwd),
+      hasNumber: /\d/.test(pwd),
+      hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(pwd)
+    }
+    
+    const allMet = Object.values(requirements).every(req => req)
+    return { requirements, allMet }
+  }
+
+  const passwordValidation = validatePassword(password)
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (password !== passwordConfirm) {
       return setError('Passwords do not match')
+    }
+
+    if (!passwordValidation.allMet) {
+      const missingReqs = []
+      if (!passwordValidation.requirements.minLength) missingReqs.push('at least 8 characters')
+      if (!passwordValidation.requirements.hasUppercase) missingReqs.push('one uppercase letter')
+      if (!passwordValidation.requirements.hasLowercase) missingReqs.push('one lowercase letter')
+      if (!passwordValidation.requirements.hasNumber) missingReqs.push('one number')
+      if (!passwordValidation.requirements.hasSpecial) missingReqs.push('one special character')
+      
+      return setError(`Password must contain: ${missingReqs.join(', ')}`)
     }
 
     try {
@@ -80,6 +108,35 @@ const SignUp = () => {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+            
+            {/* Password Requirements */}
+            {password && (
+              <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Password requirements:</p>
+                <ul className="space-y-1 text-xs">
+                  <li className={`flex items-center ${passwordValidation.requirements.minLength ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {passwordValidation.requirements.minLength ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
+                    At least 8 characters
+                  </li>
+                  <li className={`flex items-center ${passwordValidation.requirements.hasUppercase ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {passwordValidation.requirements.hasUppercase ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
+                    One uppercase letter
+                  </li>
+                  <li className={`flex items-center ${passwordValidation.requirements.hasLowercase ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {passwordValidation.requirements.hasLowercase ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
+                    One lowercase letter
+                  </li>
+                  <li className={`flex items-center ${passwordValidation.requirements.hasNumber ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {passwordValidation.requirements.hasNumber ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
+                    One number
+                  </li>
+                  <li className={`flex items-center ${passwordValidation.requirements.hasSpecial ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {passwordValidation.requirements.hasSpecial ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
+                    One special character (!@#$%^&*...)
+                  </li>
+                </ul>
+              </div>
+            )}
           </div>
 
           <div>
@@ -98,13 +155,19 @@ const SignUp = () => {
                 onChange={(e) => setPasswordConfirm(e.target.value)}
               />
             </div>
+            {passwordConfirm && password !== passwordConfirm && (
+              <p className="mt-1 text-xs text-red-600 dark:text-red-400">Passwords do not match</p>
+            )}
+            {passwordConfirm && password === passwordConfirm && (
+              <p className="mt-1 text-xs text-green-600 dark:text-green-400">Passwords match</p>
+            )}
           </div>
 
           <div>
             <button
               type="submit"
-              disabled={loading}
-              className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50"
+              disabled={loading || !passwordValidation.allMet || password !== passwordConfirm}
+              className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Creating account...' : 'Sign up'}
             </button>

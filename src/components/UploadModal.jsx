@@ -7,22 +7,40 @@ import { X, UploadCloud, Check, Loader2, AlertCircle, Trash2 } from 'lucide-reac
 const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDroppedFiles }) => {
   const [files, setFiles] = useState([])
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadErrors, setUploadErrors] = useState([])
   const { user } = useAuth()
-
+  
   // Handle dropped files
   useEffect(() => {
     if (droppedFiles && droppedFiles.length > 0) {
-      const newFiles = Array.from(droppedFiles).map(file => ({
-        file,
-        id: Math.random().toString(36).substring(7),
-        status: 'pending', // pending, uploading, success, error
-        error: null,
-        preview: URL.createObjectURL(file)
-      }))
+      const newFiles = []
+      const newErrors = []
+      
+      Array.from(droppedFiles).forEach(file => {
+        const id = crypto.randomUUID()
+        const validation = validateFileForUI(file)
+        
+        if (validation.isValid) {
+          newFiles.push({
+            file,
+            id,
+            status: 'pending',
+            error: null,
+            preview: URL.createObjectURL(file)
+          })
+        } else {
+          newErrors.push({
+            fileName: file.name,
+            error: validation.error
+          })
+        }
+      })
 
-      // Use setTimeout to avoid synchronous state update warning
       setTimeout(() => {
         setFiles(prev => [...prev, ...newFiles])
+        if (newErrors.length > 0) {
+          setUploadErrors(prev => [...prev, ...newErrors])
+        }
         if (onClearDroppedFiles) onClearDroppedFiles()
       }, 0)
     }
@@ -37,32 +55,37 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
     }
   }, [files])
 
-  // Reset state when modal is fully closed?
-  // We'll keep the state so users can see previous uploads if they open/close rapidly,
-  // but usually we want to clear on open if it was closed.
-  // Let's rely on user manually clearing or successful upload clearing.
-  // Actually, if I close and reopen, I might expect a clean slate.
-  // Let's clear if the modal is closed and we are done.
-  useEffect(() => {
-      if (!isOpen) {
-          // If we want to reset when closed
-          // setFiles([])
-      }
-  }, [isOpen])
-
-
   if (!isOpen) return null
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      const newFiles = Array.from(e.target.files).map(file => ({
-        file,
-        id: Math.random().toString(36).substring(7),
-        status: 'pending',
-        error: null,
-        preview: URL.createObjectURL(file)
-      }))
+      const newFiles = []
+      const newErrors = []
+      
+      Array.from(e.target.files).forEach(file => {
+        const id = crypto.randomUUID()
+        const validation = validateFileForUI(file)
+        
+        if (validation.isValid) {
+          newFiles.push({
+            file,
+            id,
+            status: 'pending',
+            error: null,
+            preview: URL.createObjectURL(file)
+          })
+        } else {
+          newErrors.push({
+            fileName: file.name,
+            error: validation.error
+          })
+        }
+      })
+      
       setFiles(prev => [...prev, ...newFiles])
+      if (newErrors.length > 0) {
+        setUploadErrors(prev => [...prev, ...newErrors])
+      }
     }
     e.target.value = ''
   }
@@ -77,20 +100,23 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
     })
   }
 
+  const clearErrors = () => {
+    setUploadErrors([])
+  }
+
   const handleUpload = async () => {
     const pendingFiles = files.filter(f => f.status === 'pending' || f.status === 'error')
     if (pendingFiles.length === 0) {
-        // If all are success, maybe close?
         if (files.every(f => f.status === 'success')) {
             onClose()
             setFiles([])
+            clearErrors()
         }
         return
     }
 
     setIsUploading(true)
 
-    // Parallel upload
     const uploadPromises = pendingFiles.map(async (fileObj) => {
       setFiles(prev => prev.map(f => f.id === fileObj.id ? { ...f, status: 'uploading', error: null } : f))
 
@@ -109,17 +135,14 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
         setFiles(prev => prev.map(f => f.id === fileObj.id ? { ...f, status: 'success' } : f))
       } catch (err) {
         console.error(err)
-        setFiles(prev => prev.map(f => f.id === fileObj.id ? { ...f, status: 'error', error: 'Upload failed' } : f))
+        setFiles(prev => prev.map(f => f.id === fileObj.id ? { ...f, status: 'error', error: err.message || 'Upload failed' } : f))
       }
     })
 
     await Promise.all(uploadPromises)
     setIsUploading(false)
 
-    // Refresh gallery
     if (onUploadSuccess) onUploadSuccess()
-
-    // Note: We don't auto-close here to let user see results (success/failure)
   }
 
   const pendingCount = files.filter(f => f.status === 'pending' || f.status === 'error').length
@@ -137,12 +160,31 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
         </button>
         <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Upload Photos</h2>
 
+        {/* Validation Errors */}
+        {uploadErrors.length > 0 && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h4 className="text-sm font-medium text-red-800 dark:text-red-200 mb-1">Validation Errors:</h4>
+                <ul className="text-xs text-red-700 dark:text-red-300 space-y-1 max-h-24 overflow-y-auto">
+                  {uploadErrors.map((err, idx) => (
+                    <li key={idx}>{err.fileName}: {err.error}</li>
+                  ))}
+                </ul>
+              </div>
+              <button onClick={clearErrors} className="ml-2 text-red-500 hover:text-red-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto mb-4 pr-2 custom-scrollbar">
             {/* Drop zone / Add button */}
             <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 flex flex-col items-center justify-center mb-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors relative">
                 <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
                     multiple
                     onChange={handleFileChange}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -150,7 +192,8 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
                 />
                 <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
                 <span className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                    Click to add images or drag and drop
+                    Click to add images or drag and drop<br/>
+                    <span className="text-xs">(JPEG, PNG, GIF, WebP - Max 5MB each)</span>
                 </span>
             </div>
 
@@ -212,6 +255,39 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
       </div>
     </div>
   )
+}
+
+// Helper function for UI validation feedback
+const validateFileForUI = (file) => {
+  const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+  const MAX_FILE_SIZE = 5 * 1024 * 1024
+  
+  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    return {
+      isValid: false,
+      error: 'Invalid file type. Only JPEG, PNG, GIF, and WebP allowed.'
+    }
+  }
+  
+  if (file.size > MAX_FILE_SIZE) {
+    return {
+      isValid: false,
+      error: 'File too large. Maximum size is 5MB.'
+    }
+  }
+  
+  const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+  const fileName = file.name.toLowerCase()
+  const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext))
+  
+  if (!hasValidExtension) {
+    return {
+      isValid: false,
+      error: 'Invalid file extension.'
+    }
+  }
+  
+  return { isValid: true, error: null }
 }
 
 export default UploadModal
