@@ -4,6 +4,62 @@ import { insertPhoto, fetchAlbums, createAlbum } from '../lib/db'
 import { useAuth } from '../contexts/AuthContext'
 import { X, UploadCloud, Check, Loader2, AlertCircle, Trash2, Folder, FolderPlus } from 'lucide-react'
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+
+// Validate file type using magic bytes
+const validateFileType = async (file) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const arr = new Uint8Array(reader.result).subarray(0, 4)
+      let header = ''
+      for (let i = 0; i < arr.length; i++) {
+        header += arr[i].toString(16).padStart(2, '0')
+      }
+      
+      // Check magic bytes for common image formats
+      const isValid = 
+        header.startsWith('ffd8ffe') || // JPEG
+        header.startsWith('89504e47') || // PNG
+        header.startsWith('47494638') || // GIF
+        header.startsWith('52494646') // WebP (RIFF)
+      
+      resolve(isValid)
+    }
+    reader.readAsArrayBuffer(file.slice(0, 4))
+  })
+}
+
+const validateFile = async (file) => {
+  const errors = []
+  
+  // Check file extension
+  const ext = '.' + file.name.split('.').pop().toLowerCase()
+  if (!ALLOWED_EXTENSIONS.includes(ext)) {
+    errors.push(`Invalid file type. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`)
+  }
+  
+  // Check MIME type
+  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    errors.push(`Invalid MIME type. Allowed: ${ALLOWED_MIME_TYPES.join(', ')}`)
+  }
+  
+  // Check file size
+  if (file.size > MAX_FILE_SIZE) {
+    errors.push(`File too large. Maximum size: ${MAX_FILE_SIZE / 1024 / 1024}MB`)
+  }
+  
+  // Validate magic bytes
+  const isValidType = await validateFileType(file)
+  if (!isValidType) {
+    errors.push('File type does not match content (invalid magic bytes)')
+  }
+  
+  return errors
+}
+
 const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDroppedFiles }) => {
   const [files, setFiles] = useState([])
   const [isUploading, setIsUploading] = useState(false)
@@ -16,18 +72,8 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
   // Handle dropped files
   useEffect(() => {
     if (droppedFiles && droppedFiles.length > 0) {
-      const newFiles = Array.from(droppedFiles).map(file => ({
-        file,
-        id: Math.random().toString(36).substring(7),
-        status: 'pending', // pending, uploading, success, error
-        error: null,
-        preview: URL.createObjectURL(file)
-      }))
-
-      setTimeout(() => {
-        setFiles(prev => [...prev, ...newFiles])
-        if (onClearDroppedFiles) onClearDroppedFiles()
-      }, 0)
+      processFiles(Array.from(droppedFiles))
+      if (onClearDroppedFiles) onClearDroppedFiles()
     }
   }, [droppedFiles, onClearDroppedFiles])
 
@@ -47,6 +93,24 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
     }
   }, [isOpen, user])
 
+  const processFiles = async (newFiles) => {
+    const processedFiles = []
+    
+    for (const file of newFiles) {
+      const errors = await validateFile(file)
+      
+      processedFiles.push({
+        file,
+        id: Math.random().toString(36).substring(7),
+        status: errors.length > 0 ? 'error' : 'pending',
+        error: errors.length > 0 ? errors.join('; ') : null,
+        preview: errors.length === 0 ? URL.createObjectURL(file) : null
+      })
+    }
+    
+    setFiles(prev => [...prev, ...processedFiles])
+  }
+
   if (!isOpen) return null
 
   const handleClose = () => {
@@ -57,14 +121,7 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      const newFiles = Array.from(e.target.files).map(file => ({
-        file,
-        id: Math.random().toString(36).substring(7),
-        status: 'pending',
-        error: null,
-        preview: URL.createObjectURL(file)
-      }))
-      setFiles(prev => [...prev, ...newFiles])
+      processFiles(Array.from(e.target.files))
     }
     e.target.value = ''
   }
@@ -109,6 +166,11 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
     setIsUploading(true)
 
     const uploadPromises = pendingFiles.map(async (fileObj) => {
+      // Skip files with validation errors
+      if (fileObj.status === 'error') {
+        return
+      }
+      
       setFiles(prev => prev.map(f => f.id === fileObj.id ? { ...f, status: 'uploading', error: null } : f))
 
       try {
@@ -225,7 +287,8 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
                 />
                 <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
                 <span className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                    Click to add images or drag and drop
+                    Click to add images or drag and drop<br/>
+                    <span className="text-xs">(Max 10MB per file, JPG/PNG/GIF/WebP only)</span>
                 </span>
             </div>
 
@@ -234,12 +297,23 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, droppedFiles, onClearDr
                     {files.map(fileObj => (
                         <div key={fileObj.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-700">
                             <div className="flex items-center space-x-3 truncate flex-1">
-                                <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded overflow-hidden flex-shrink-0 relative">
-                                    <img src={fileObj.preview} alt="preview" className="w-full h-full object-cover" />
-                                </div>
+                                {fileObj.preview ? (
+                                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded overflow-hidden flex-shrink-0 relative">
+                                        <img src={fileObj.preview} alt="preview" className="w-full h-full object-cover" />
+                                    </div>
+                                ) : (
+                                    <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded flex items-center justify-center flex-shrink-0">
+                                        <AlertCircle className="w-5 h-5 text-red-500" />
+                                    </div>
+                                )}
                                 <div className="truncate min-w-0 flex-1">
                                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate" title={fileObj.file.name}>{fileObj.file.name}</p>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">{(fileObj.file.size / 1024).toFixed(0)} KB</p>
+                                    {fileObj.error && (
+                                        <p className="text-xs text-red-500 mt-1" title={fileObj.error}>
+                                            {fileObj.error.length > 50 ? fileObj.error.substring(0, 50) + '...' : fileObj.error}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
 

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
+const PASSWORD_MIN_LENGTH = 8
+
 const SignUp = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -10,12 +12,36 @@ const SignUp = () => {
   const [loading, setLoading] = useState(false)
   const { signUp } = useAuth()
   const navigate = useNavigate()
-
+  
+  const validatePassword = (pwd) => {
+    if (pwd.length < PASSWORD_MIN_LENGTH) {
+      return `Password must be at least ${PASSWORD_MIN_LENGTH} characters long`
+    }
+    if (!/[a-z]/.test(pwd)) {
+      return 'Password must contain at least one lowercase letter'
+    }
+    if (!/[A-Z]/.test(pwd)) {
+      return 'Password must contain at least one uppercase letter'
+    }
+    if (!/\d/.test(pwd)) {
+      return 'Password must contain at least one number'
+    }
+    if (!/[@$!%*?&]/.test(pwd)) {
+      return 'Password must contain at least one special character (@$!%*?&)'
+    }
+    return null
+  }
+  
   const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (password !== passwordConfirm) {
       return setError('Passwords do not match')
+    }
+
+    const passwordError = validatePassword(password)
+    if (passwordError) {
+      return setError(passwordError)
     }
 
     try {
@@ -25,7 +51,7 @@ const SignUp = () => {
       if (error) throw error
       navigate('/')
     } catch (error) {
-      setError('Failed to create an account: ' + error.message)
+      setError('Failed to create an account. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -80,6 +106,9 @@ const SignUp = () => {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Must be at least 8 characters with uppercase, lowercase, number, and special character
+            </p>
           </div>
 
           <div>

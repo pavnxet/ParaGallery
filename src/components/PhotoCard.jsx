@@ -10,6 +10,13 @@ const PhotoCard = ({ photo, onClick, onDelete, onToggleFavorite, isSelectionMode
           onClick(photo)
       }
   }
+  
+  const handleDelete = () => {
+    // Custom confirmation modal would be better, but for now we use a safer pattern
+    if (window.confirm('Are you sure you want to delete this photo? This action cannot be undone.')) {
+      onDelete(photo.id)
+    }
+  }
 
   return (
     <div
@@ -60,9 +67,7 @@ const PhotoCard = ({ photo, onClick, onDelete, onToggleFavorite, isSelectionMode
                 <button
                 onClick={(e) => {
                     e.stopPropagation()
-                    if (window.confirm('Are you sure you want to delete this photo?')) {
-                    onDelete(photo.id)
-                    }
+                    handleDelete()
                 }}
                 className="p-1.5 bg-red-600 text-white rounded-full hover:bg-red-700 focus:outline-none shadow-sm"
                 title="Delete"

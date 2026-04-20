@@ -1,5 +1,12 @@
 import { supabase } from './supabaseClient'
 
+// Sanitize search term to prevent SQL injection-like issues
+const sanitizeSearchTerm = (term) => {
+  if (!term || typeof term !== 'string') return ''
+  // Remove special characters that could be used in LIKE queries
+  return term.replace(/[%_\\]/g, '').trim().substring(0, 100)
+}
+
 export const insertPhoto = async (photoData) => {
   const { data, error } = await supabase
     .from('photos')
@@ -11,7 +18,6 @@ export const insertPhoto = async (photoData) => {
 }
 
 export const fetchUserPhotos = async (userId, options = {}) => {
-  // Although RLS should handle this, we explicitly filter by user_id as per requirements
   let query = supabase
     .from('photos')
     .select('*')
@@ -26,7 +32,11 @@ export const fetchUserPhotos = async (userId, options = {}) => {
   }
 
   if (options.searchTerm) {
-    query = query.ilike('name', `%${options.searchTerm}%`)
+    // Sanitize search term before using in query
+    const sanitizedTerm = sanitizeSearchTerm(options.searchTerm)
+    if (sanitizedTerm) {
+      query = query.ilike('name', `%${sanitizedTerm}%`)
+    }
   }
 
   query = query.order('created_at', { ascending: false })
@@ -65,10 +75,20 @@ export const deleteAlbum = async (albumId) => {
 }
 
 export const deleteMultiplePhotos = async (photoIds) => {
+  // Validate that all IDs are valid UUIDs or numbers
+  const validatedIds = photoIds.filter(id => 
+    typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ||
+    typeof id === 'number'
+  )
+  
+  if (validatedIds.length === 0) {
+    throw new Error('No valid photo IDs provided')
+  }
+  
   const { error } = await supabase
     .from('photos')
     .delete()
-    .in('id', photoIds)
+    .in('id', validatedIds)
 
   if (error) throw error
 }
@@ -84,9 +104,19 @@ export const toggleFavorite = async (photoId, isFavorite) => {
 
 // Album functions
 export const createAlbum = async (albumData) => {
+  // Sanitize album name
+  if (!albumData.name || typeof albumData.name !== 'string') {
+    throw new Error('Invalid album name')
+  }
+  
+  const sanitizedAlbumData = {
+    ...albumData,
+    name: albumData.name.trim().substring(0, 100)
+  }
+  
   const { data, error } = await supabase
     .from('albums')
-    .insert([albumData])
+    .insert([sanitizedAlbumData])
     .select()
 
   if (error) throw error

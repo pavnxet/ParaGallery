@@ -2,6 +2,10 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
+const LOGIN_ATTEMPTS_KEY = 'login_attempts'
+const MAX_ATTEMPTS = 5
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000 // 15 minutes
+
 const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -9,17 +13,61 @@ const Login = () => {
   const [loading, setLoading] = useState(false)
   const { signIn } = useAuth()
   const navigate = useNavigate()
-
+  
+  const checkRateLimit = () => {
+    const now = Date.now()
+    const attempts = JSON.parse(localStorage.getItem(LOGIN_ATTEMPTS_KEY) || '[]')
+    
+    // Filter out old attempts
+    const recentAttempts = attempts.filter(timestamp => now - timestamp < LOCKOUT_DURATION_MS)
+    
+    if (recentAttempts.length >= MAX_ATTEMPTS) {
+      const oldestAttempt = Math.min(...recentAttempts)
+      const remainingTime = Math.ceil((LOCKOUT_DURATION_MS - (now - oldestAttempt)) / 60000)
+      return { limited: true, remainingTime }
+    }
+    
+    return { limited: false, attempts: recentAttempts }
+  }
+  
+  const recordAttempt = (attempts) => {
+    const now = Date.now()
+    const newAttempts = [...attempts, now].filter(ts => now - ts < LOCKOUT_DURATION_MS)
+    localStorage.setItem(LOGIN_ATTEMPTS_KEY, JSON.stringify(newAttempts))
+  }
+  
+  const clearAttempts = () => {
+    localStorage.removeItem(LOGIN_ATTEMPTS_KEY)
+  }
+  
   const handleSubmit = async (e) => {
     e.preventDefault()
+    
+    // Check rate limit
+    const rateLimitResult = checkRateLimit()
+    if (rateLimitResult.limited) {
+      setError(`Too many failed login attempts. Please try again in ${rateLimitResult.remainingTime} minute(s).`)
+      return
+    }
+    
     try {
       setError('')
       setLoading(true)
       const { error } = await signIn(email, password)
-      if (error) throw error
+      
+      if (error) {
+        // Record failed attempt
+        const attempts = JSON.parse(localStorage.getItem(LOGIN_ATTEMPTS_KEY) || '[]')
+        recordAttempt(attempts)
+        throw error
+      }
+      
+      // Clear attempts on successful login
+      clearAttempts()
       navigate('/')
     } catch (error) {
-      setError('Failed to log in: ' + error.message)
+      // Generic error message to prevent information disclosure
+      setError('Invalid email or password. Please try again.')
     } finally {
       setLoading(false)
     }
